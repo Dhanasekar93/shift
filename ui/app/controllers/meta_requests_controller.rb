@@ -145,7 +145,7 @@ class MetaRequestsController < ApplicationController
     max_threads_running = params[:max_threads_running] || 200
     max_replication_lag = params[:max_replication_lag] || 1
     config_path = params[:config_path]
-    recursion_method = params[:recursion_method]
+    recursion_method = params[:recursion_method] || "none"
 
     @saved_state = {
       :ddl_statement       => params[:ddl_statement],
@@ -294,6 +294,7 @@ class MetaRequestsController < ApplicationController
     @meta_request = MetaRequest.find(params[:id])
     max_threads_running = @meta_request.max_threads_running || 200
     max_replication_lag = @meta_request.max_replication_lag || 1
+    recursion_method = @meta_request.recursion_method || "none"
     @saved_state = {
       :ddl_statement       => @meta_request.ddl_statement,
       :final_insert        => @meta_request.final_insert,

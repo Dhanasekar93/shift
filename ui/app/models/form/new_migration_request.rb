@@ -6,6 +6,7 @@ module Form
       # define some defaults
       self.max_threads_running = 200
       self.max_replication_lag = 1
+      self.recursion_method = "none"
 
       ATTRIBUTES.each do |attr|
         if params.has_key?(attr.to_s)
