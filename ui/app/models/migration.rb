@@ -4,7 +4,7 @@ class Migration < ActiveRecord::Base
   paginates_per 20
   before_save :encodeCustomOptions
   after_initialize :decodeCustomOptions
-  attr_accessor :actions, :max_threads_running, :max_replication_lag, :config_path, :recursion_method
+  attr_accessor :actions, :max_threads_running, :max_replication_lag, :config_path, :recursion_method, :extra_options
 
   belongs_to :cluster, foreign_key: "cluster_name", primary_key: "name"
 
@@ -449,6 +449,7 @@ class Migration < ActiveRecord::Base
     self.custom_options = ActiveSupport::JSON.encode(max_threads_running: self.max_threads_running,
                                                      max_replication_lag: self.max_replication_lag,
                                                      config_path: self.config_path,
+                                                     extra_options: self.extra_options,
                                                      recursion_method: self.recursion_method)
   end
 
@@ -463,6 +464,7 @@ class Migration < ActiveRecord::Base
       self.max_threads_running = decodedOptions["max_threads_running"]
       self.max_replication_lag = decodedOptions["max_replication_lag"]
       self.config_path = decodedOptions["config_path"]
+      self.extra_options = decodedOptions["extra_options"]
       self.recursion_method = decodedOptions["recursion_method"]
     end
   end

@@ -913,6 +913,7 @@ func (runner *runner) generatePtOscCommand(currentMigration *migration.Migration
 	defaultOptions := map[string]string{
 		"max_threads_running": "200",
 		"max_replication_lag": "1",
+		"extra_options": "",
 		"config_path":         "",
 		"recursion_method":    "",
 	}
@@ -933,7 +934,12 @@ func (runner *runner) generatePtOscCommand(currentMigration *migration.Migration
 	if currentMigration.Status == migration.PrepMigrationStatus {
 		commandOptions = append(commandOptions, "--alter", alterStatement, "--dry-run",
 			"-h", currentMigration.Host, "-P", strconv.Itoa(currentMigration.Port),
-			"--defaults-file", runner.MysqlDefaultsFile, dsn)
+			"--defaults-file", runner.MysqlDefaultsFile)
+
+		if len(customOptions["extra_options"]) > 0 {
+			commandOptions = append(commandOptions, customOptions["extra_options"],dsn)
+		}
+
 	} else if currentMigration.Status == migration.RunMigrationStatus {
 		// specify config file if it is defined. Options specified via command line will overwrite
 		// ones specified in the config file
@@ -961,6 +967,10 @@ func (runner *runner) generatePtOscCommand(currentMigration *migration.Migration
 
 		if currentMigration.RunType == migration.NOCHECKALTER_RUN {
 			commandOptions = append(commandOptions, "--nocheck-alter")
+		}
+
+		if len(customOptions["extra_options"]) > 0 {
+			commandOptions = append(commandOptions, customOptions["extra_options"])
 		}
 
 		if len(customOptions["recursion_method"]) > 0 {

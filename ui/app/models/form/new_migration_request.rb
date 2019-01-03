@@ -6,6 +6,7 @@ module Form
       # define some defaults
       self.max_threads_running = 200
       self.max_replication_lag = 1
+      # self.extra_options = ""
       self.recursion_method = "none"
 
       ATTRIBUTES.each do |attr|
@@ -27,6 +28,7 @@ module Form
         max_threads_running: max_threads_running,
         max_replication_lag: max_replication_lag,
         config_path: config_path,
+        extra_options: extra_options,
         recursion_method: recursion_method,
         meta_request_id: meta_request_id,
         runtype: Migration.types[:run][:undecided],

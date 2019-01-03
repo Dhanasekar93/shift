@@ -169,6 +169,7 @@ class MetaRequestsController < ApplicationController
     clusters = params[:clusters]
     max_threads_running = params[:max_threads_running]
     max_replication_lag = params[:max_replication_lag]
+    extra_options = params[:extra_options]
     config_path = params[:config_path]
     recursion_method = params[:recursion_method]
     no_errors = []
@@ -215,6 +216,7 @@ class MetaRequestsController < ApplicationController
           "final_insert"        => final_insert,
           "max_threads_running" => max_threads_running,
           "max_replication_lag" => max_replication_lag,
+          "extra_options"       => extra_options,
           "config_path"         => config_path,
           "recursion_method"    => recursion_method,
           "runtype"             => Migration.types[:run][:undecided],
@@ -234,6 +236,7 @@ class MetaRequestsController < ApplicationController
           :requestor           => current_user_name,
           :max_threads_running => max_threads_running,
           :max_replication_lag => max_replication_lag,
+          :extra_options       => extra_options,
           :config_path         => config_path,
           :recursion_method    => recursion_method,
         })
@@ -274,6 +277,7 @@ class MetaRequestsController < ApplicationController
       :pr_url              => pr_url,
       :max_threads_running => max_threads_running,
       :max_replication_lag => max_replication_lag,
+      :extra_options       => extra_options,
       :config_path         => config_path,
       :recursion_method    => recursion_method,
       :cluster_dbs   => {},
@@ -301,6 +305,7 @@ class MetaRequestsController < ApplicationController
       :pr_url              => @meta_request.pr_url,
       :max_threads_running => max_threads_running,
       :max_replication_lag => max_replication_lag,
+      :extra_options       => extra_options,
       :config_path         => @meta_request.config_path,
       :recursion_method    => @meta_request.recursion_method,
     }

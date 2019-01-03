@@ -52,7 +52,7 @@ module Form
     private
 
     def mutable?(attr)
-      %w(cluster_name database table ddl_statement pr_url requestor final_insert max_threads_running max_replication_lag config_path recursion_method).include?(attr)
+      %w(cluster_name database table ddl_statement pr_url requestor final_insert max_threads_running max_replication_lag config_path extra_options recursion_method).include?(attr)
     end
   end
 end

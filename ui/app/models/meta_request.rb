@@ -3,7 +3,7 @@ class MetaRequest < ActiveRecord::Base
   paginates_per 20
   before_save :encodeCustomOptions
   after_initialize :decodeCustomOptions
-  attr_accessor :max_threads_running, :max_replication_lag, :config_path, :recursion_method
+  attr_accessor :max_threads_running, :max_replication_lag, :config_path, :recursion_method, :extra_options
 
   validates_presence_of :ddl_statement
   validates_presence_of :pr_url
@@ -15,6 +15,7 @@ class MetaRequest < ActiveRecord::Base
     self.custom_options = ActiveSupport::JSON.encode(max_threads_running: self.max_threads_running,
                                                      max_replication_lag: self.max_replication_lag,
                                                      config_path: self.config_path,
+                                                     extra_options: self.extra_options,
                                                      recursion_method: self.recursion_method)
   end
 
@@ -29,6 +30,7 @@ class MetaRequest < ActiveRecord::Base
       self.max_threads_running = decodedOptions["max_threads_running"]
       self.max_replication_lag = decodedOptions["max_replication_lag"]
       self.config_path = decodedOptions["config_path"]
+      self.extra_options = decodedOptions["extra_options"]
       self.recursion_method = decodedOptions["recursion_method"]
     end
   end

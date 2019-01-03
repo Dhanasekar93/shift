@@ -144,6 +144,17 @@
             <label class="custom-options-units col-md-3 control-label">seconds</label>
           </div>
 
+
+          <div class="form-group">
+            <div class="col-md-4">
+              <%= f.label :extra_options, 'extra options', class: 'control-label', rows: 2%>
+              <span class="help-block">Extra added options for pt-online-schema-change. More <a href="https://www.percona.com/doc/percona-toolkit/LATEST/pt-online-schema-change.html" target="_blank">info</a></span>
+            </div>
+            <div class="col-md-offset-1 col-md-5">
+              <%= f.text_field :extra_options, class: 'form-control' %>
+            </div>
+          </div> 
+
           <div class="form-group custom-options-hidden">
             <div class="col-md-4">
               <%= f.label :config_path, 'config path', class: 'control-label', rows: 2%>
