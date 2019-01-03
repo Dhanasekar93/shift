@@ -44,8 +44,11 @@ docker-compose up -d db
 # wait for db container's own initialization to finish
 docker-compose logs -f
 
+# get docker mysql host
+docker_mysql_host=`docker exec -it shiftmaster_db_1 /bin/bash -c 'hostname -I'`
+
 # then run db:setup task
-docker-compose run --rm shift bash -c 'cd /opt/code/ui; bundle exec rake db:setup'
+docker-compose run --rm shift bash -c 'cd /opt/code/ui; bundle exec rake db:setup; mysql -u ${MYSQL_USER} -p ${MYSQL_PASSWORD} -h ${docker_mysql_host} -e "INSERT IGNORE INTO shift.clusters (name,app,rw_host,port,admin_review_required,is_staging) VALUES ('PRODUCTION','local-app','${RUNNER_MYSQL_HOST}','${RUNNER_MYSQL_PORT}',1,0);"'
 ```
 
 after `db:setup`, you can spin up the whole stack:
