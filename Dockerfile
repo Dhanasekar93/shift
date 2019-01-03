@@ -24,14 +24,16 @@ RUN apt-get update && apt-get install -y \
     patch \
     perl \
     ruby-dev \
-    supervisor
+    supervisor --fix-missing
 
 # install pt-toolkit
 COPY ptosc-patch /opt/code/ptosc-patch
 RUN cpanm YAML::Syck \
-    && curl -sL -o pt-toolkit-2.2.15.deb https://www.percona.com/downloads/percona-toolkit/2.2.15/deb/percona-toolkit_2.2.15-2_all.deb \
-    && dpkg -i pt-toolkit-2.2.15.deb && rm pt-toolkit-2.2.15.deb \
-    && patch /usr/bin/pt-online-schema-change /opt/code/ptosc-patch/0001-ptosc-square-changes.patch
+    && curl -sL -o percona-release-latest.deb https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb \
+    && dpkg -i percona-release-latest.deb && rm percona-release-latest.deb
+
+RUN apt-get update && apt-get install -y percona-toolkit
+RUN patch -q /usr/bin/pt-online-schema-change /opt/code/ptosc-patch/0001-ptosc-square-changes.patch 2>/dev/null
 
 # copy / install ui
 COPY ui/Gemfile ui/Gemfile.lock /opt/code/ui/

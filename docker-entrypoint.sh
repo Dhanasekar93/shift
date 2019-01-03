@@ -6,6 +6,7 @@ mkdir -p /opt/code/runner/config
 printf "[client]
 user     = ${RUNNER_MYSQL_USER}
 password = ${RUNNER_MYSQL_PASSWORD}
+host 	 = ${RUNNER_MYSQL_HOST}
 " > /opt/code/runner/config/my_production.cnf
 
 if [ -n "${RUNNER_MYSQL_CERT}" -a -n
@@ -49,6 +50,9 @@ database_override: ${RUNNER_DATABASE_OVERRIDE}
 # TODO:
 # patch ui/config/environments/production.rb at runtime in this script
 # for now, we modify it directly in place
+
+# Inserting the runner host inside mysql 
+`which mysql` -u ${MYSQL_USER} -p ${MYSQL_PASSWORD} -e "INSERT IGNORE INTO ${}.clusters (name,app,rw_host,port,admin_review_required,is_staging) VALUES ('PRODUCTION','local-app','${RUNNER_MYSQL_HOST}','${RUNNER_MYSQL_PORT}',1,0);"
 
 # render supervisord config
 mkdir -p /etc/supervisor/conf.d

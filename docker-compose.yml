@@ -19,8 +19,10 @@ services:
       - DATABASE_URL=mysql2://shift:shift@db/shift?pool=30&timeout=5000
       - SECRET_KEY_BASE=some_random_30_char_string
       - DB_BLACKLIST=information_schema,mysql,performance_schema,_pending_drops,common_schema,sys
-      - UI_ADMINS=cadl
+      - UI_ADMINS=dhanasekar
       - UI_MYSQL_USER=shift
       - UI_MYSQL_PASSWORD=shift
-      - RUNNER_MYSQL_USER=root
-      - RUNNER_MYSQL_PASSWORD=root
+      - RUNNER_MYSQL_USER=shift
+      - RUNNER_MYSQL_PASSWORD='h.dxue6q1:mC'
+      - RUNNER_MYSQL_HOST=192.168.33.11
+      - RUNNER_MYSQL_PORT=3306
