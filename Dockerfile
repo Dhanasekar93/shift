@@ -24,7 +24,6 @@ RUN apt-get update && apt-get install -y \
     patch \
     perl \
     ruby-dev \
-    mysql-client \
     sendmail \
     supervisor --fix-missing
 
@@ -34,7 +33,7 @@ RUN cpanm YAML::Syck \
     && curl -sL -o percona-release-latest.deb https://repo.percona.com/apt/percona-release_latest.$(lsb_release -sc)_all.deb \
     && dpkg -i percona-release-latest.deb && rm percona-release-latest.deb
 
-RUN apt-get update && apt-get install -y percona-toolkit
+RUN apt-get update && apt-get install -y percona-toolkit mysql-client
 RUN patch /usr/bin/pt-online-schema-change /opt/code/ptosc-patch/0001-ptosc-square-changes.patch; exit 0
 
 # copy / install ui
