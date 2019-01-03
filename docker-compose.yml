@@ -10,6 +10,7 @@ services:
       - MYSQL_DATABASE=shift
       - MYSQL_USER=shift
       - MYSQL_PASSWORD=shift
+    container_name: mydbops_mysql
   shift:
     build:
       context: .
@@ -21,8 +22,9 @@ services:
       - DB_BLACKLIST=information_schema,mysql,performance_schema,_pending_drops,common_schema,sys
       - UI_ADMINS=dhanasekar
       - UI_MYSQL_USER=shift
-      - UI_MYSQL_PASSWORD=shift
+      - UI_MYSQL_PASSWORD='h.dxue6q1:mC'
       - RUNNER_MYSQL_USER=shift
       - RUNNER_MYSQL_PASSWORD='h.dxue6q1:mC'
-      - RUNNER_MYSQL_HOST=192.168.33.11
+      - RUNNER_MYSQL_HOST=192.168.33.13
       - RUNNER_MYSQL_PORT=3306
+    container_name: mydbops_shift

@@ -24,6 +24,8 @@ RUN apt-get update && apt-get install -y \
     patch \
     perl \
     ruby-dev \
+    mysql-client \
+    sendmail \
     supervisor --fix-missing
 
 # install pt-toolkit
@@ -33,7 +35,7 @@ RUN cpanm YAML::Syck \
     && dpkg -i percona-release-latest.deb && rm percona-release-latest.deb
 
 RUN apt-get update && apt-get install -y percona-toolkit
-RUN patch -q /usr/bin/pt-online-schema-change /opt/code/ptosc-patch/0001-ptosc-square-changes.patch 2>/dev/null
+RUN patch /usr/bin/pt-online-schema-change /opt/code/ptosc-patch/0001-ptosc-square-changes.patch; exit 0
 
 # copy / install ui
 COPY ui/Gemfile ui/Gemfile.lock /opt/code/ui/
