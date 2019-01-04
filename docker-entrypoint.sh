@@ -43,7 +43,7 @@ database_override: ${RUNNER_DATABASE_OVERRIDE}
 
 # render supervisord config
 mkdir -p /etc/supervisor/conf.d
-printf '[program:shift-ui]
+printf "[program:shift-ui]
 command=bundle exec rails server -b 0.0.0.0 -p ${SHIFT_UI_PORT}
 directory=/opt/code/ui/
 autostart=true
@@ -58,7 +58,7 @@ autostart=true
 stdout_logfile=/dev/stdout
 stdout_logfile_maxbytes=0
 redirect_stderr=true
-' > /etc/supervisor/conf.d/shift.conf
+" > /etc/supervisor/conf.d/shift.conf
 
 export ENVIRONMENT="production"
 export PATH="/usr/local/bin:/usr/local/bundle/bin:$PATH"
