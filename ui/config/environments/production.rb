@@ -116,5 +116,6 @@ Rails.application.configure do
   # root path for pt-osc output logs. specified within shift-runner
   config.x.ptosc.log_dir = "/tmp/shift/"
 
-  config.x.admins = (ENV["UI_ADMINS"] || "").split(",").map(&:downcase)
+  # Removing this option
+  # config.x.admins = (ENV["UI_ADMINS"] || "").split(",").map(&:downcase)
 end
