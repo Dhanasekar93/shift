@@ -82,7 +82,7 @@ Rails.application.configure do
   # Do not dump schema after migrations.
   config.active_record.dump_schema_after_migration = false
 
-  config.action_mailer.default_url_options = { :host => "fill_this_in" }
+  config.action_mailer.default_url_options = { :host => ENV["UI_LINK"] }
   config.action_mailer.perform_deliveries = true
   config.action_mailer.raise_delivery_errors = true
   config.action_mailer.delivery_method = :sendmail
@@ -102,19 +102,19 @@ Rails.application.configure do
   #config.x.mysql_helper.db_blacklist =
   #  ["information_schema", "mysql", "performance_schema", "_pending_drops",
   #   "common_schema"]
-  config.x.mysql_helper.db_blacklist = (ENV['DB_BLACKLIST'] || 'information_schema,mysql,performance_schema,_pending_drops,common_schema').split(',')
+  config.x.mysql_helper.db_blacklist = (ENV["DB_BLACKLIST"] || "information_schema,mysql,performance_schema,_pending_drops,common_schema").split(',')
 
   ## mailer stuff
   #config.x.mailer.default_from = "shift@your_domain"
   #config.x.mailer.default_to = "your_local_name"
   #config.x.mailer.default_to_domain = "@your_domain"
-  config.x.mailer.default_from = ENV['MAILER_DEFAULT_FROM'] || 'shift@your_domain'
-  config.x.mailer.default_to = ENV['MAILER_DEFAULT_TO'] || 'your_local_name'
-  config.x.mailer.default_to_domain = ENV['MAILER_DEFAULT_TO_DOMAIN'] || '@your_domain'
+  config.x.mailer.default_from = ENV["MAILER_DEFAULT_FROM"] || "shift@your_domain"
+  config.x.mailer.default_to = ENV["MAILER_DEFAULT_TO"] || "your_local_name"
+  config.x.mailer.default_to_domain = ENV["MAILER_DEFAULT_TO_DOMAIN"] || "@your_domain"
 
   ## ptosc
   # root path for pt-osc output logs. specified within shift-runner
   config.x.ptosc.log_dir = "/tmp/shift/"
 
-  config.x.admins = (ENV['UI_ADMINS'] || "").split(",").map(&:downcase)
+  config.x.admins = (ENV["UI_ADMINS"] || "").split(",").map(&:downcase)
 end
