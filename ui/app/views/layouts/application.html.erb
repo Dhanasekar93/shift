@@ -8,6 +8,20 @@
     <%= csrf_meta_tags %>
     <%= favicon_link_tag %>
   </head>
+  <script type="text/javascript">(function () {
+    function checkTime(i) {
+        return (i < 10) ? "0" + i : i;
+    }
+
+    function startTime() {
+        t = setTimeout(function () {
+            startTime()
+            ch = checkTime(Time.now.strftime("%Y-%m-%d %H:%M:%S"));
+        	document.getElementById('time').innerHTML = ch;
+        }, 1000);
+    }
+    startTime();
+})();</script>
   <body>
     <div id="wrap">
       <div class="navbar navbar-inverse navbar-fixed-top" role="navigation">
@@ -26,6 +40,7 @@
               <p class="navbar-text navbar-right">
               <%= current_user_name %></p>
               <ul class="nav navbar-nav navbar-right">
+                <li class="<%= 'active' if params[:action] == "index" %>" id="time"></li>
                 <li class="<%= 'active' if params[:action] == "index" && params[:controller] == "migrations" %>"><%= link_to 'All Requests', root_url %></li>
                 <li class="<%= 'active' if params[:action] == "index" && params[:controller] == "meta_requests" %>"><%= link_to 'Meta Requests', meta_requests_path %></li>
                 <li class="<%= 'active' if params[:action] == "new" %>"><%= link_to 'Create Request', new_migration_path %></li>
