@@ -1,0 +1,9 @@
+shift_db_root_pass: root
+shift_db_name: shift
+shift_db_user: shift
+shift_db_pass: shift
+shift_ui_port: 3000
+runner_mysql_user: shift
+runner_mysql_pass: 'h.dxue6q1:mC'
+runner_mysql_host: 192.168.33.13
+runner_mysql_port: 3306

@@ -1,0 +1,14 @@
+# - git:
+#     repo: 'https://github.com/Dhanasekar93/shift.git'
+#     dest: /opt/checkout
+#     clone: no
+#     update: no
+
+- hosts: 127.0.0.1
+  vars_files:
+    - dockercompose.yml
+  tasks:
+    - name: Creating docker-compose file with the template
+      template:
+        src: dockercompose.j2
+        dest: dockercompose_out.yml

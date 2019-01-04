@@ -1,0 +1,32 @@
+---
+version: '2'
+
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - /tmp/shift-db:/var/lib/mysql
+    environment:
+      - MYSQL_ROOT_PASSWORD={{ shift_db_root_pass }}
+      - MYSQL_DATABASE={{ shift_db_name }}
+      - MYSQL_USER={{ shift_db_user }}
+      - MYSQL_PASSWORD={{ shift_db_pass }}
+    container_name: mydbops_mysql
+  shift:
+    build:
+      context: .
+    ports:
+      - "{{ shift_ui_port }}:{{ shift_ui_port }}"
+    environment:
+      - DATABASE_URL=mysql2://shift:shift@db/shift?pool=30&timeout=5000
+      - SECRET_KEY_BASE=some_random_30_char_string
+      - DB_BLACKLIST=information_schema,mysql,performance_schema,_pending_drops,common_schema,sys
+      - UI_ADMINS=dhanasekar
+      - UI_MYSQL_USER={{ runner_mysql_user }}
+      - UI_MYSQL_PASSWORD={{ runner_mysql_pass }}
+      - RUNNER_MYSQL_USER={{ runner_mysql_user }}
+      - SHIFT_UI_PORT={{ shift_ui_port }}
+      - RUNNER_MYSQL_PASSWORD={{ runner_mysql_pass }}
+      - RUNNER_MYSQL_HOST={{ runner_mysql_host }}
+      - RUNNER_MYSQL_PORT={{ runner_mysql_port }}
+    container_name: mydbops_shift

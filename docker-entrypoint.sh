@@ -18,7 +18,7 @@ mysql_rootCA: ${RUNNER_MYSQL_ROOTCA}
 mysql_defaults_file: config/my_production.cnf
 
 # config for the rest client
-rest_api: http://127.0.0.1:3000/api/v1/
+rest_api: http://127.0.0.1:${SHIFT_UI_PORT}/api/v1/
 rest_cert:
 rest_key:
 
@@ -44,7 +44,7 @@ database_override: ${RUNNER_DATABASE_OVERRIDE}
 # render supervisord config
 mkdir -p /etc/supervisor/conf.d
 printf '[program:shift-ui]
-command=bundle exec rails server -b 0.0.0.0 -p 3000
+command=bundle exec rails server -b 0.0.0.0 -p ${SHIFT_UI_PORT}
 directory=/opt/code/ui/
 autostart=true
 stdout_logfile=/dev/stdout
