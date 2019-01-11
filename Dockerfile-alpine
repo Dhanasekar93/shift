@@ -1,0 +1,70 @@
+# compile runner
+FROM alpine:3.2 AS builder
+
+# Dependencies for getting/building
+RUN apk update && \
+    apk upgrade && \
+    apk --update add \
+    wget curl make ruby ruby-irb ruby-rake ruby-io-console ruby-bigdecimal ruby-json ruby-bundler ruby-dev gcc g++ zlib zlib-dev mysql-dev go git \
+    libstdc++ tzdata bash ca-certificates \
+    py-pip \
+    && pip install supervisor \
+    && echo 'gem: --no-document' > /etc/gemrc \
+    && rm -rf /var/cache/apk/*
+
+COPY ptosc-patch /opt/code/ptosc-patch
+
+RUN set -x \
+  && buildDeps='make' \
+  && apk add --update perl perl-dbi perl-dbd-mysql perl-io-socket-ssl perl-term-readkey $buildDeps \
+  && wget -O /tmp/percona-toolkit.tar.gz https://www.percona.com/downloads/percona-toolkit/3.0.12/binary/tarball/percona-toolkit-3.0.12_x86_64.tar.gz \
+  && tar -xzvf /tmp/percona-toolkit.tar.gz -C /tmp \
+  && cd /tmp/percona-toolkit-3.0.12 \
+  && perl Makefile.PL \
+  && make \
+  && make test \
+  && make install \
+&& rm -rf /var/cache/apk/* /tmp/percona-toolkit*
+
+RUN patch /usr/local/bin/pt-online-schema-change /opt/code/ptosc-patch/0001-ptosc-square-changes.patch; exit 0
+
+# ENV PATH /opt/rubies/ruby-2.2.10/bin:$PATH
+# ENV PATH /opt/gems/ruby-2.2.10/bin/:$PATH
+ENV PATH /root/.gem/ruby/2.5.0/bin:$PATH
+
+COPY ui/Gemfile ui/Gemfile.lock /opt/code/ui/
+
+RUN cd /opt/code/ui \
+    && gem install json mysql2 \
+    && gem install libv8 -v '3.16.14.11' -- --with-system-v8 \
+    && bundle install
+COPY ui /opt/code/ui
+
+# Tidy a little.
+RUN rm -rf /var/cache/apk/*
+
+ENV GOROOT /usr/lib/go
+ENV GOPATH /go
+ENV PATH /go/bin:$PATH
+
+RUN mkdir -p ${GOPATH}/src ${GOPATH}/bin
+
+RUN go get github.com/tools/godep && go get -v github.com/square/shift/...
+
+COPY runner /opt/code/runner
+
+RUN cd /opt/code/runner/ \ 
+    && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o runner .
+
+# create shift log dir
+RUN mkdir -p /tmp/shift
+
+# copy entrypoint script
+COPY docker-entrypoint.sh /opt/code/
+
+# runtime
+WORKDIR /opt/code
+EXPOSE 3000
+ENTRYPOINT ["/opt/code/docker-entrypoint.sh"]
+CMD ["supervisord", "-n","-c","/etc/supervisor/conf.d/shift.conf"]
+
