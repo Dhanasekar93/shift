@@ -6,3 +6,5 @@ before_install:
   - curl -L https://github.com/docker/compose/releases/download/${DOCKER_COMPOSE_VERSION}/docker-compose-`uname -s`-`uname -m` > docker-compose
   - chmod +x docker-compose
   - sudo mv docker-compose /usr/local/bin
+  - docker-compose up -d db
+  - docker-compose run --rm shift bash -c 'cd /opt/code/ui; bundle exec rake db:setup;'
