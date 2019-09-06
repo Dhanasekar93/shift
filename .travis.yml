@@ -10,5 +10,4 @@ before_install:
 install:
   - git clone --depth=50 --branch=master https://github.com/Dhanasekar93/shift.git Dhanasekar93/shift
   - cd Dhanasekar93/shift
-  - docker-compose up -d db
   - docker-compose run --rm shift bash -c 'cd /opt/code/ui; bundle exec rake db:setup;'
