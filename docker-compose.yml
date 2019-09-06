@@ -11,6 +11,7 @@ services:
       - MYSQL_USER=shift
       - MYSQL_PASSWORD=shift
     container_name: mydbops_mysql
+
   shift:
     build:
       context: .
