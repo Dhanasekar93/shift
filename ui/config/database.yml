@@ -4,6 +4,7 @@ common: &common
   pool:     30
   timeout:  5000
   username: root
+  password: root
 
 test:
   <<: *common

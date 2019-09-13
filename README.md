@@ -58,3 +58,7 @@ docker-compose up
 ```
 
 and access ui at `http://<ip>:3000`
+
+
+
+INSERT IGNORE INTO shift.clusters (name,app,rw_host,port,admin_review_required,is_staging) VALUES ('localhost','local-app','127.0.0.1','3306',1,0);
