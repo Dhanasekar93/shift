@@ -69,14 +69,13 @@ cd /workspace/runner && ./shift-runner -logtostderr
 
 ### Slack notifications
 
-Two modes are supported (Bot Token is preferred):
+Three config options (Bot Token is preferred):
 
-**Bot Token mode** (preferred): Set `SLACK_BOT_TOKEN` and `SLACK_CHANNEL_ID` as Cursor secrets.
-- `SLACK_BOT_TOKEN`: Bot User OAuth Token (`xoxb-...`) from your Slack App. Requires `chat:write` scope.
-- `SLACK_CHANNEL_ID`: Channel ID (e.g. `C0123456789`) — find it in Slack channel details.
-- Uses `chat.postMessage` API for rich Block Kit messages with interactive buttons.
+**Option A** (preferred): `SLACK_BOT_TOKEN` + `SLACK_CHANNEL_ID`
+**Option B**: Bot token in `SLACK_WEBHOOK_URL` + `SLACK_CHANNEL_ID` (auto-detected if value starts with `xoxb-`)
+**Option C**: Incoming Webhook URL in `SLACK_WEBHOOK_URL` (starts with `https://hooks.slack.com/services/...`)
 
-**Webhook fallback**: Set `SLACK_WEBHOOK_URL` (Incoming Webhook URL starting with `https://hooks.slack.com/services/...`). Used only when Bot Token is not set.
+**Important**: Use the **Bot User OAuth Token** (`xoxb-...`) from OAuth & Permissions, NOT the App-Level Token (`xapp-...`) from Basic Information. App-level tokens will authenticate but return `not_allowed_token_type` on `chat.postMessage`. The bot needs `chat:write` scope. See `README.md` for full setup steps.
 
 Slack messages include:
 - Status-specific icons (rocket for start, checkmark for complete, etc.)
