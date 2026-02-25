@@ -10,20 +10,47 @@ class Notifier
   private
 
   def self.slack_notify(msg, migration = nil)
-    bot_token = ENV['SLACK_BOT_TOKEN']
-    channel   = ENV['SLACK_CHANNEL_ID']
+    bot_token = resolve_token
+    channel   = resolve_channel
     webhook   = ENV['SLACK_WEBHOOK_URL']
 
     if bot_token.present? && channel.present?
       post_via_bot(msg, migration, bot_token, channel)
     elsif webhook.present? && webhook.start_with?('xoxb-')
-      channel_fallback = channel || ENV['SLACK_CHANNEL'] || '#general'
+      channel_fallback = channel || '#general'
       post_via_bot(msg, migration, webhook, channel_fallback)
     elsif webhook.present? && webhook.start_with?('https://')
       post_via_webhook(msg, migration)
     else
-      Rails.logger.info("[Slack] No valid Slack config found. Set SLACK_BOT_TOKEN+SLACK_CHANNEL_ID or SLACK_WEBHOOK_URL.")
+      Rails.logger.info("[Slack] No valid Slack config. Set SLACK_BOT_TOKEN+SLACK_CHANNEL_ID.")
     end
+  end
+
+  TOKEN_PATHS = [
+    '/tmp/slack_bot_token.txt',
+    File.expand_path('../../tmp/slack_bot_token.txt', __dir__),
+  ].freeze
+
+  CHANNEL_PATHS = [
+    '/tmp/slack_channel_id.txt',
+    File.expand_path('../../tmp/slack_channel_id.txt', __dir__),
+  ].freeze
+
+  def self.resolve_token
+    TOKEN_PATHS.each do |path|
+      val = File.read(path).strip rescue nil
+      return val if val.present? && val.start_with?('xoxb-')
+    end
+    token = ENV['SLACK_BOT_TOKEN']
+    token.present? ? token : nil
+  end
+
+  def self.resolve_channel
+    CHANNEL_PATHS.each do |path|
+      val = File.read(path).strip rescue nil
+      return val if val.present?
+    end
+    ENV['SLACK_CHANNEL_ID']
   end
 
   # --- Bot Token API (preferred: supports rich blocks + buttons) ---
