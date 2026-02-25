@@ -10,18 +10,62 @@ class Notifier
   private
 
   def self.slack_notify(msg, migration = nil)
+    bot_token = ENV['SLACK_BOT_TOKEN']
+    channel   = ENV['SLACK_CHANNEL_ID']
+
+    if bot_token.present? && channel.present?
+      post_via_bot(msg, migration, bot_token, channel)
+    else
+      post_via_webhook(msg, migration)
+    end
+  end
+
+  # --- Bot Token API (preferred: supports rich blocks + buttons) ---
+
+  def self.post_via_bot(msg, migration, token, channel)
+    uri = URI.parse("https://slack.com/api/chat.postMessage")
+    http = Net::HTTP.new(uri.host, uri.port)
+    http.use_ssl = true
+    http.open_timeout = 5
+    http.read_timeout = 5
+
+    blocks = build_blocks(msg, migration)
+    payload = { channel: channel, blocks: blocks, text: msg }
+
+    request = Net::HTTP::Post.new(uri.request_uri, {
+      'Content-Type'  => 'application/json; charset=utf-8',
+      'Authorization' => "Bearer #{token}"
+    })
+    request.body = payload.to_json
+
+    begin
+      response = http.request(request)
+      body = JSON.parse(response.body) rescue {}
+      unless body["ok"]
+        Rails.logger.warn("[Slack Bot] API error: #{body['error']}")
+      end
+    rescue StandardError => e
+      Rails.logger.warn("[Slack Bot] Error: #{e.message}")
+    end
+  end
+
+  # --- Incoming Webhook fallback ---
+
+  def self.post_via_webhook(msg, migration)
     webhook_url = ENV['SLACK_WEBHOOK_URL']
     return if webhook_url.blank?
     return unless webhook_url =~ /\Ahttps?:\/\//
 
-    payload = build_slack_payload(msg, migration)
+    blocks = build_blocks(msg, migration)
+    payload = { blocks: blocks, text: msg }
 
     begin
       uri = URI.parse(webhook_url)
     rescue URI::InvalidURIError => e
-      Rails.logger.warn("[Slack] Invalid webhook URL: #{e.message}")
+      Rails.logger.warn("[Slack Webhook] Invalid URL: #{e.message}")
       return
     end
+
     http = Net::HTTP.new(uri.host, uri.port)
     http.use_ssl = (uri.scheme == 'https')
     http.open_timeout = 5
@@ -33,89 +77,89 @@ class Notifier
     begin
       response = http.request(request)
       unless response.is_a?(Net::HTTPSuccess)
-        Rails.logger.warn("[Slack] Failed: #{response.code} #{response.body}")
+        Rails.logger.warn("[Slack Webhook] Failed: #{response.code} #{response.body}")
       end
     rescue StandardError => e
-      Rails.logger.warn("[Slack] Error: #{e.message}")
+      Rails.logger.warn("[Slack Webhook] Error: #{e.message}")
     end
   end
 
-  def self.build_slack_payload(msg, migration = nil)
+  # --- Shared Block Kit builder ---
+
+  def self.build_blocks(msg, migration)
     host = Rails.application.config.action_mailer.default_url_options[:host] rescue '127.0.0.1:3000'
     base_url = "http://#{host}"
-
-    icon, color = status_decoration(msg)
+    icon, _color = status_decoration(msg)
     mig_id = extract_migration_id(msg)
     mig_url = mig_id ? "#{base_url}/migrations/#{mig_id}" : nil
 
     blocks = []
 
     blocks << {
-      type: "section",
-      text: { type: "mrkdwn", text: "#{icon} *Shift Migration Update*" }
+      type: "header",
+      text: { type: "plain_text", text: "#{icon} Shift Migration Update", emoji: true }
     }
 
-    blocks << {
-      type: "section",
-      text: { type: "mrkdwn", text: msg }
-    }
+    blocks << { type: "section", text: { type: "mrkdwn", text: msg } }
 
     if migration
-      details = []
-      details << "*ID:* #{migration.id}"
-      details << "*Cluster:* #{migration.cluster_name}" if migration.respond_to?(:cluster_name)
-      details << "*Database:* #{migration.database}" if migration.respond_to?(:database)
-      details << "*DDL:* `#{migration.ddl_statement.truncate(80)}`" if migration.respond_to?(:ddl_statement)
-      details << "*Requestor:* #{migration.requestor}" if migration.respond_to?(:requestor)
-      details << "*Status:* #{status_label(migration)}"
+      fields = []
+      fields << { type: "mrkdwn", text: "*ID:* #{migration.id}" }
+      fields << { type: "mrkdwn", text: "*Status:* #{status_label(migration)}" }
+      fields << { type: "mrkdwn", text: "*Cluster:* #{migration.cluster_name}" } if migration.respond_to?(:cluster_name)
+      fields << { type: "mrkdwn", text: "*Database:* #{migration.database}" } if migration.respond_to?(:database)
+      fields << { type: "mrkdwn", text: "*Requestor:* #{migration.requestor}" } if migration.respond_to?(:requestor)
+      if migration.respond_to?(:approved_by) && migration.approved_by.present?
+        fields << { type: "mrkdwn", text: "*Approved by:* #{migration.approved_by}" }
+      end
+      if migration.respond_to?(:copy_percentage) && migration.copy_percentage.present?
+        fields << { type: "mrkdwn", text: "*Copy:* #{migration.copy_percentage}%" }
+      end
+      fields << { type: "mrkdwn", text: "*DDL:* `#{migration.ddl_statement.to_s.truncate(60)}`" } if migration.respond_to?(:ddl_statement)
 
-      blocks << {
-        type: "section",
-        text: { type: "mrkdwn", text: details.join("\n") }
-      }
+      blocks << { type: "section", fields: fields.first(10) }
     end
 
     if mig_url
       actions = []
-      actions << { type: "button", text: { type: "plain_text", text: "View Migration" }, url: mig_url }
+      actions << { type: "button", text: { type: "plain_text", text: ":link: View Migration", emoji: true }, url: mig_url }
 
       if migration
-        slack_action_base = "#{base_url}/slack_actions"
+        action_base = "#{base_url}/slack_actions"
 
-        if migration.status == 1
+        if migration.status == 1  # awaiting_approval
           actions << {
             type: "button",
-            text: { type: "plain_text", text: ":white_check_mark: Approve" },
-            url: "#{slack_action_base}/approve?id=#{migration.id}&lock_version=#{migration.lock_version}",
+            text: { type: "plain_text", text: ":white_check_mark: Approve", emoji: true },
+            url: "#{action_base}/approve?id=#{migration.id}&lock_version=#{migration.lock_version}",
             style: "primary"
           }
         end
 
-        if migration.status == 2
+        if migration.status == 2  # awaiting_start
           actions << {
             type: "button",
-            text: { type: "plain_text", text: ":rocket: Start Migration" },
-            url: "#{slack_action_base}/start?id=#{migration.id}&lock_version=#{migration.lock_version}",
+            text: { type: "plain_text", text: ":rocket: Start Migration", emoji: true },
+            url: "#{action_base}/start?id=#{migration.id}&lock_version=#{migration.lock_version}",
             style: "primary"
           }
         end
 
-        if migration.status == 4
+        if migration.status == 4  # awaiting_rename
           actions << {
             type: "button",
-            text: { type: "plain_text", text: ":arrows_counterclockwise: Rename" },
-            url: "#{slack_action_base}/rename?id=#{migration.id}&lock_version=#{migration.lock_version}",
+            text: { type: "plain_text", text: ":arrows_counterclockwise: Rename Tables", emoji: true },
+            url: "#{action_base}/rename?id=#{migration.id}&lock_version=#{migration.lock_version}",
             style: "primary"
           }
         end
       end
 
-      blocks << { type: "actions", elements: actions }
+      blocks << { type: "actions", elements: actions } if actions.any?
     end
 
     blocks << { type: "divider" }
-
-    { blocks: blocks }
+    blocks
   end
 
   def self.extract_migration_id(msg)
@@ -132,6 +176,7 @@ class Notifier
     when /preparing/     then [":hourglass_flowing_sand:", "#9e9e9e"]
     when /paused/        then [":double_vertical_bar:", "#ff9800"]
     when /created/       then [":new:", "#2196f3"]
+    when /rename/        then [":arrows_counterclockwise:", "#9c27b0"]
     else                      [":database:", "#439fe0"]
     end
   end
