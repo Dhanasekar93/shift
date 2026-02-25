@@ -305,12 +305,12 @@ func (runner *runner) unstageRunnableMigration(currentMigration rest.RestRespons
 		mig := &migration.Migration{
 			Id:             migrationIdField,
 			Status:         migrationStatus,
-			Host:           currentMigration["host"].(string),
+			Host:           safeString(currentMigration["host"]),
 			Port:           int(currentMigration["port"].(float64)),
-			Database:       currentMigration["database"].(string),
-			Table:          currentMigration["table"].(string),
-			DdlStatement:   currentMigration["ddl_statement"].(string),
-			FinalInsert:    currentMigration["final_insert"].(string),
+			Database:       safeString(currentMigration["database"]),
+			Table:          safeString(currentMigration["table"]),
+			DdlStatement:   safeString(currentMigration["ddl_statement"]),
+			FinalInsert:    safeString(currentMigration["final_insert"]),
 			FilesDir:       filesDir,
 			StateFile:      stateFile,
 			LogFile:        logFile,
@@ -896,6 +896,18 @@ func (runner *runner) postStateFile(migration *migration.Migration) {
 			glog.Infof("Sent state file to write_file endpoint")
 		}
 	}
+}
+
+// safeString safely converts an interface{} to string, returning "" for nil values.
+func safeString(v interface{}) string {
+	if v == nil {
+		return ""
+	}
+	s, ok := v.(string)
+	if !ok {
+		return ""
+	}
+	return s
 }
 
 // function type for generating exec command options
