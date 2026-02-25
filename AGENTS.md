@@ -69,16 +69,37 @@ cd /workspace/runner && ./shift-runner -logtostderr
 
 ### Slack notifications
 
-Set `SLACK_WEBHOOK_URL` env var before starting Rails to enable Slack notifications on every migration state change. Without it, the `Notifier` service logs to Rails logger only. Messages include status-specific icons and deep links to the migration detail page.
+Set `SLACK_WEBHOOK_URL` env var (Cursor secret) before starting Rails. The URL must be a valid Slack Incoming Webhook (`https://hooks.slack.com/services/...`). Invalid URLs are silently skipped.
+
+Slack messages use Block Kit with:
+- Status-specific icons (rocket for start, checkmark for complete, etc.)
+- Migration details (cluster, database, DDL, requestor)
+- **Action buttons**: "Approve", "Start", and "Rename" buttons appear contextually, linking to `/slack_actions/{approve,start,rename}` endpoints that perform the action and redirect to the migration detail page.
 
 ### Audit trail
 
-Every state transition creates a `Comment` record with `[AUDIT]` prefix and UTC timestamp (author: `system`). Visible in the migration detail page under the "Comments" section. This provides a complete, tamper-evident history of who did what and when.
+Every state transition creates a `Comment` record with `[AUDIT]` prefix and UTC timestamp (author: `system` or `slack`). Visible in the migration detail page under "Comments". This provides a complete, tamper-evident history of who did what and when.
 
-### Full migration lifecycle
+### Full migration lifecycle (ALTER TABLE with pt-osc)
 
-1. **File** migration (UI or API) → status: `preparing` (0), staged for runner
-2. **Runner prepares** (dry-run / validation) → status: `awaiting_approval` (1)
-3. **Approve** (UI/API/CLI, requires admin or cluster owner) → status: `awaiting_start` (2)
-4. **Start** (UI/API/CLI) → status: `copy_in_progress` (3), staged for runner
-5. **Runner executes** (pt-osc for ALTER, direct for CREATE/DROP) → status: `completed` (8)
+1. **File** (UI/API) → status `preparing` (0), staged for runner
+2. **Runner prepares** (dry-run pt-osc, collects table stats) → status `awaiting_approval` (1)
+3. **Approve** (UI/API/CLI/Slack button) → status `awaiting_start` (2)
+4. **Start** (UI/API/CLI/Slack button) → status `copy_in_progress` (3), staged for runner
+5. **Runner copies rows** via pt-osc (progress % tracked) → status `awaiting_rename` (4)
+6. **Rename** (UI/API/CLI/Slack button) → status `rename_in_progress` (5), staged for runner
+7. **Runner renames tables** → status `completed` (8)
+
+For CREATE/DROP TABLE: steps 5-6 are skipped (runner completes directly after step 4).
+
+### pt-online-schema-change setup
+
+The system `pt-online-schema-change` must have the Shift patch applied (adds `--exit-at`, `--save-state`). Applied via:
+```bash
+sudo patch /usr/bin/pt-online-schema-change /workspace/ptosc-patch/0001-ptosc-square-changes.patch
+```
+Also requires `YAML::Syck` Perl module: `sudo cpanm YAML::Syck`
+
+### Custom options JSON compatibility
+
+The `custom_options` blob in the migrations table must store values as **strings** (not integers) for Go 1.22 compatibility. E.g., `{"max_threads_running":"200"}` not `{"max_threads_running":200}`. The Rails `encodeCustomOptions` method stores integers by default; if filing via API, pass string values.
