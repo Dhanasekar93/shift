@@ -81,6 +81,46 @@ Each migration state change posts a Slack message with:
 
 Every state transition is logged as a `Comment` on the migration with `[AUDIT]` prefix, UTC timestamp, actor, and source (UI/API/CLI/Slack). Visible in the migration detail page under "Comments".
 
+## Quick Start (Docker — works on M1/ARM64 + Intel)
+
+```bash
+# 1. Start everything
+./shift.sh start
+
+# 2. Initialize database (first time only)
+./shift.sh setup
+
+# 3. Open the UI
+open http://localhost:3000
+
+# 4. (Optional) Enable Slack notifications
+export SLACK_BOT_TOKEN=xoxb-your-bot-token
+export SLACK_CHANNEL_ID=C0123456789
+./shift.sh restart
+```
+
+### Management Commands
+
+| Command | Description |
+|---------|-------------|
+| `./shift.sh start` | Build and start all services |
+| `./shift.sh stop` | Stop all services |
+| `./shift.sh restart` | Restart all services |
+| `./shift.sh status` | Show service status |
+| `./shift.sh logs` | Tail all logs |
+| `./shift.sh logs shift` | Tail shift service logs only |
+| `./shift.sh setup` | Initialize DB + seed data (first time) |
+| `./shift.sh test-slack` | Send a test Slack message |
+| `./shift.sh destroy` | Remove everything including data |
+
+### What starts
+
+- **MySQL 8.0** on port 3307 (mapped from container 3306)
+- **Rails UI** on port 3000 (direct) and 8080 (via Nginx with basic auth)
+- **Shift Runner** polling the API for migrations to execute
+- **Nginx** reverse proxy with basic auth (admin/admin123)
+- **pt-online-schema-change** (patched) for online ALTER TABLE
+
 ## License
 
 Copyright (c) 2016 Square Inc. Distributed under the Apache 2.0 License.
@@ -88,7 +128,7 @@ See LICENSE file for further details.
 
 ---
 
-## Run locally with `docker-compose`
+## Run locally with `docker-compose` (legacy)
 
 If you haven't initialized database, do it first and do it only once:
 

@@ -1,0 +1,78 @@
+# Dockerfile.dev — M1/ARM64 + AMD64 compatible development build
+# Uses platform-agnostic base images instead of the old golang:1.6 / ruby:2.2
+
+# Stage 1: Build the Go runner
+FROM golang:1.22 AS builder
+
+COPY runner /go/src/github.com/square/shift/runner
+WORKDIR /go/src/github.com/square/shift/runner
+
+ENV GO111MODULE=off
+ENV GOPATH=/go:/go/src/github.com/square/shift/runner/Godeps/_workspace
+
+RUN CGO_ENABLED=0 go build -a -installsuffix cgo -o /go/bin/shift-runner .
+
+# Stage 2: Runtime — Ruby 2.7 + MySQL 5.7 client (compatible with Rails 4.2 and mysql2 gem)
+FROM ruby:2.7-slim
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV MYSQL_PWD=root
+
+# System dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    cpanminus \
+    curl \
+    default-libmysqlclient-dev \
+    default-mysql-server \
+    default-mysql-client \
+    libdbd-mysql-perl \
+    libdbi-perl \
+    libgmp-dev \
+    libio-socket-ssl-perl \
+    libterm-readkey-perl \
+    libyaml-perl \
+    nginx \
+    net-tools \
+    apache2-utils \
+    patch \
+    perl \
+    supervisor \
+    wget \
+    --no-install-recommends \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install Percona Toolkit + apply Shift patch
+COPY ptosc-patch /opt/code/ptosc-patch
+RUN cpanm YAML::Syck \
+    && wget -q https://www.percona.com/downloads/percona-toolkit/3.0.13/source/tarball/percona-toolkit-3.0.13.tar.gz \
+    && tar -xf percona-toolkit-3.0.13.tar.gz \
+    && cd percona-toolkit-3.0.13/bin \
+    && patch pt-online-schema-change /opt/code/ptosc-patch/0001-ptosc-square-changes.patch \
+    && cp pt-* /usr/local/bin/ \
+    && chmod +x /usr/local/bin/pt-* \
+    && cd / && rm -rf percona-toolkit-3.0.13*
+
+# Install Ruby gems
+COPY ui/Gemfile ui/Gemfile.lock /opt/code/ui/
+WORKDIR /opt/code/ui
+RUN bundle install --jobs 4 || bundle install --jobs 1
+
+# Copy application code
+COPY ui /opt/code/ui
+COPY --from=builder /go/bin/shift-runner /opt/code/runner/runner
+
+# Create directories
+RUN mkdir -p /tmp/shift /var/run/mysqld /var/lib/mysql \
+    && chown -R mysql:mysql /var/run/mysqld /var/lib/mysql
+
+# Copy entrypoint
+COPY docker-entrypoint.sh /opt/code/
+RUN chmod +x /opt/code/docker-entrypoint.sh
+
+WORKDIR /opt/code
+EXPOSE 3000 80
+
+ENV RAILS_ENV=production
+ENTRYPOINT ["/opt/code/docker-entrypoint.sh"]
+CMD ["supervisord", "-n"]

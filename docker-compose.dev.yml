@@ -1,0 +1,70 @@
+version: '3.8'
+
+services:
+  db:
+    image: mysql:8.0
+    platform: linux/amd64
+    command: --default-authentication-plugin=mysql_native_password --skip-ssl
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: shift_production
+    ports:
+      - "3307:3306"
+    volumes:
+      - shift_mysql_data:/var/lib/mysql
+    healthcheck:
+      test: mysqladmin -uroot -proot ping
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  shift:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    ports:
+      - "3000:3000"
+      - "8080:80"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      # Database
+      - MYSQL_HOST=db
+      - MYSQL_PORT=3306
+      - MYSQL_USER=root
+      - MYSQL_PASSWORD=root
+      # Rails
+      - SECRET_KEY_BASE=shift_dev_secret_key_base_change_in_production_1234567890
+      - RAILS_ENV=production
+      - RAILS_SERVE_STATIC_FILES=1
+      - DB_BLACKLIST=information_schema,mysql,performance_schema,_pending_drops,common_schema,sys
+      # UI config
+      - UI_MYSQL_USER=root
+      - UI_MYSQL_PASSWORD=root
+      - UI_LINK=localhost:3000
+      - UI_ADMINS=admin
+      # Runner config
+      - RUNNER_MYSQL_USER=root
+      - RUNNER_MYSQL_PASS=root
+      - RUNNER_MYSQL_HOST=db
+      - RUNNER_MYSQL_PORT=3306
+      # Nginx basic auth
+      - SERVER_USER=admin
+      - SERVER_PASSWORD=admin123
+      # Slack (set your own values)
+      - SLACK_BOT_TOKEN=${SLACK_BOT_TOKEN:-}
+      - SLACK_CHANNEL_ID=${SLACK_CHANNEL_ID:-}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+    volumes:
+      - shift_logs:/tmp/shift
+    healthcheck:
+      test: curl -f http://localhost:3000/_status || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
+volumes:
+  shift_mysql_data:
+  shift_logs:
