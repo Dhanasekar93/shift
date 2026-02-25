@@ -76,6 +76,11 @@ Rails.application.routes.draw do
     end
   end
 
+  # Slack action endpoints (approve/start/rename from Slack buttons)
+  get 'slack_actions/approve', to: 'slack_actions#approve'
+  get 'slack_actions/start', to: 'slack_actions#start'
+  get 'slack_actions/rename', to: 'slack_actions#rename'
+
   match "/404" => "errors#error404", via: [ :get, :post, :patch, :delete ]
   match "/401" => "errors#error401", via: [ :get, :post, :patch, :delete ]
 end

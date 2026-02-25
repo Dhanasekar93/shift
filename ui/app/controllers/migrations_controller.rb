@@ -107,8 +107,9 @@ class MigrationsController < ApplicationController
   def create
     @migration = Form::NewMigrationRequest.new(params.require(:form_new_migration_request).merge(requestor: current_user_name))
     if @migration.save
-      Notifier.notify("migration id #{@migration.dao.id} created by #{current_user_name} on cluster #{@migration.dao.cluster_name} — DDL: #{@migration.dao.ddl_statement}")
-      audit_log(@migration.dao, "Migration created by #{current_user_name}")
+      dao = Migration.find(@migration.dao.id)
+      Notifier.notify("migration id #{dao.id} created by #{current_user_name} on cluster #{dao.cluster_name} — DDL: #{dao.ddl_statement}", dao)
+      audit_log(dao, "Migration created by #{current_user_name}")
       MigrationMailer.new_migration(@migration).deliver_now
       redirect_to migration_path(id: @migration.dao.id)
     else
@@ -290,7 +291,7 @@ class MigrationsController < ApplicationController
   def send_notifications
     status_label = Statuses.find_by_status(@migration.status).try(:description) || "status #{@migration.status}"
     message = "migration id #{@migration.id} moved to #{status_label} from the UI by #{current_user_name}"
-    Notifier.notify(message)
+    Notifier.notify(message, @migration)
     audit_log(@migration, "Status changed to '#{status_label}' by #{current_user_name} via UI")
     MigrationMailer.migration_status_change(@migration).deliver_now
   end

@@ -321,7 +321,7 @@ module Api
       end
 
       def send_notifications(message)
-        Notifier.notify(message)
+        Notifier.notify(message, @migration)
         audit_log(@migration, message)
         MigrationMailer.migration_status_change(@migration).deliver_now
       end

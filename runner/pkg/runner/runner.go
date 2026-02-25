@@ -937,8 +937,9 @@ func (runner *runner) generatePtOscCommand(currentMigration *migration.Migration
 			"--defaults-file", runner.MysqlDefaultsFile)
 
 		if len(customOptions["extra_options"]) > 0 {
-			commandOptions = append(commandOptions, customOptions["extra_options"],dsn)
+			commandOptions = append(commandOptions, customOptions["extra_options"])
 		}
+		commandOptions = append(commandOptions, dsn)
 
 	} else if currentMigration.Status == migration.RunMigrationStatus {
 		// specify config file if it is defined. Options specified via command line will overwrite
