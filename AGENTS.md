@@ -66,3 +66,19 @@ cd /workspace/runner && ./shift-runner -logtostderr
 4. The `mysql2` 0.3.19 gem must be compiled against `/opt/mysql-connector-c-6.1.11` (not the system MySQL 8.0 headers). If you need to reinstall it: `gem install mysql2 -v '0.3.19' -- --with-mysql-config=/opt/mysql-connector-c-6.1.11/bin/mysql_config`
 5. **Go runner uses Godep** (not Go modules). Set `GO111MODULE=off` and configure GOPATH with a symlink as shown above.
 6. The `development.rb` config must have `mysql_helper.db_config` password matching the MySQL root password (`root`).
+
+### Slack notifications
+
+Set `SLACK_WEBHOOK_URL` env var before starting Rails to enable Slack notifications on every migration state change. Without it, the `Notifier` service logs to Rails logger only. Messages include status-specific icons and deep links to the migration detail page.
+
+### Audit trail
+
+Every state transition creates a `Comment` record with `[AUDIT]` prefix and UTC timestamp (author: `system`). Visible in the migration detail page under the "Comments" section. This provides a complete, tamper-evident history of who did what and when.
+
+### Full migration lifecycle
+
+1. **File** migration (UI or API) → status: `preparing` (0), staged for runner
+2. **Runner prepares** (dry-run / validation) → status: `awaiting_approval` (1)
+3. **Approve** (UI/API/CLI, requires admin or cluster owner) → status: `awaiting_start` (2)
+4. **Start** (UI/API/CLI) → status: `copy_in_progress` (3), staged for runner
+5. **Runner executes** (pt-osc for ALTER, direct for CREATE/DROP) → status: `completed` (8)
