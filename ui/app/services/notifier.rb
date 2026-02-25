@@ -12,11 +12,17 @@ class Notifier
   def self.slack_notify(msg, migration = nil)
     bot_token = ENV['SLACK_BOT_TOKEN']
     channel   = ENV['SLACK_CHANNEL_ID']
+    webhook   = ENV['SLACK_WEBHOOK_URL']
 
     if bot_token.present? && channel.present?
       post_via_bot(msg, migration, bot_token, channel)
-    else
+    elsif webhook.present? && webhook.start_with?('xoxb-')
+      channel_fallback = channel || ENV['SLACK_CHANNEL'] || '#general'
+      post_via_bot(msg, migration, webhook, channel_fallback)
+    elsif webhook.present? && webhook.start_with?('https://')
       post_via_webhook(msg, migration)
+    else
+      Rails.logger.info("[Slack] No valid Slack config found. Set SLACK_BOT_TOKEN+SLACK_CHANNEL_ID or SLACK_WEBHOOK_URL.")
     end
   end
 

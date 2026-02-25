@@ -26,6 +26,61 @@ Watch a demo video [here](https://www.youtube.com/watch?v=u5L7PqIk--k)
 ## Installation
 Read the installation guide [here](https://github.com/square/shift/wiki/Installation-Guide)
 
+## Slack Integration
+
+Shift sends Slack notifications on every migration state change (filed, approved, started, completed, failed, etc.) with interactive action buttons for Approve, Start, and Rename.
+
+### Slack Bot Setup
+
+1. **Create a Slack App** at [api.slack.com/apps](https://api.slack.com/apps) → "Create New App" → "From scratch"
+
+2. **Add the following Bot Token Scopes** under **OAuth & Permissions → Scopes → Bot Token Scopes**:
+
+   | Scope | Purpose |
+   |-------|---------|
+   | `chat:write` | Post migration notifications to channels |
+   | `chat:write.public` | Post to channels the bot hasn't been invited to (optional) |
+
+3. **Install the App** to your workspace: **OAuth & Permissions → Install to Workspace** → Authorize
+
+4. **Copy the Bot User OAuth Token** (`xoxb-...`) from the **OAuth & Permissions** page
+
+5. **Get the Channel ID**: In Slack, right-click the target channel → "View channel details" → copy the **Channel ID** at the bottom (e.g. `C0123456789`)
+
+6. **Invite the bot** to your channel: type `/invite @YourBotName` in the channel
+
+### Configuration
+
+Set these environment variables before starting the Rails server:
+
+```bash
+# Option A: Bot Token (preferred — supports rich messages + action buttons)
+export SLACK_BOT_TOKEN=xoxb-your-bot-token
+export SLACK_CHANNEL_ID=C0123456789
+
+# Option B: Bot token in SLACK_WEBHOOK_URL (auto-detected if starts with xoxb-)
+export SLACK_WEBHOOK_URL=xoxb-your-bot-token
+export SLACK_CHANNEL_ID=C0123456789
+
+# Option C: Incoming Webhook (fallback — no interactive buttons)
+export SLACK_WEBHOOK_URL=https://hooks.slack.com/services/T.../B.../xxx
+```
+
+### What You Get
+
+Each migration state change posts a Slack message with:
+- Status icon and header (e.g. `:rocket: Shift Migration Update`)
+- Migration details: ID, cluster, database, DDL, requestor, copy %, approved by
+- **Action buttons** that appear contextually:
+  - **Approve** — when migration is awaiting approval
+  - **Start Migration** — when migration is approved and awaiting start
+  - **Rename Tables** — when pt-osc copy is complete and awaiting rename
+- Clicking a button triggers the action and redirects to the migration detail page
+
+### Audit Trail
+
+Every state transition is logged as a `Comment` on the migration with `[AUDIT]` prefix, UTC timestamp, actor, and source (UI/API/CLI/Slack). Visible in the migration detail page under "Comments".
+
 ## License
 
 Copyright (c) 2016 Square Inc. Distributed under the Apache 2.0 License.
