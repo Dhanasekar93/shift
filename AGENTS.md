@@ -69,12 +69,19 @@ cd /workspace/runner && ./shift-runner -logtostderr
 
 ### Slack notifications
 
-Set `SLACK_WEBHOOK_URL` env var (Cursor secret) before starting Rails. The URL must be a valid Slack Incoming Webhook (`https://hooks.slack.com/services/...`). Invalid URLs are silently skipped.
+Two modes are supported (Bot Token is preferred):
 
-Slack messages use Block Kit with:
+**Bot Token mode** (preferred): Set `SLACK_BOT_TOKEN` and `SLACK_CHANNEL_ID` as Cursor secrets.
+- `SLACK_BOT_TOKEN`: Bot User OAuth Token (`xoxb-...`) from your Slack App. Requires `chat:write` scope.
+- `SLACK_CHANNEL_ID`: Channel ID (e.g. `C0123456789`) — find it in Slack channel details.
+- Uses `chat.postMessage` API for rich Block Kit messages with interactive buttons.
+
+**Webhook fallback**: Set `SLACK_WEBHOOK_URL` (Incoming Webhook URL starting with `https://hooks.slack.com/services/...`). Used only when Bot Token is not set.
+
+Slack messages include:
 - Status-specific icons (rocket for start, checkmark for complete, etc.)
-- Migration details (cluster, database, DDL, requestor)
-- **Action buttons**: "Approve", "Start", and "Rename" buttons appear contextually, linking to `/slack_actions/{approve,start,rename}` endpoints that perform the action and redirect to the migration detail page.
+- Migration detail fields (ID, cluster, database, DDL, requestor, copy %)
+- **Action buttons**: "Approve", "Start", and "Rename" appear contextually — clicking them triggers `/slack_actions/{approve,start,rename}` which performs the action and redirects to the migration detail page.
 
 ### Audit trail
 
