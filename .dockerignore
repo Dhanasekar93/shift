@@ -1,0 +1,9 @@
+.git
+runner/shift-runner
+runner/Godeps/_workspace/src/code.google.com
+ui/log/*
+ui/tmp/*
+ui/coverage
+ui/vendor/bundle
+*.md
+!README.md

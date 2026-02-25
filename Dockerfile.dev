@@ -1,8 +1,9 @@
-# Dockerfile.dev — M1/ARM64 + AMD64 compatible development build
-# Uses platform-agnostic base images instead of the old golang:1.6 / ruby:2.2
+# Dockerfile.dev — M1 Mac (ARM64) + Intel (AMD64) compatible
+# Runs under linux/amd64 emulation on M1 for full compatibility with
+# Ruby 2.7 native gems, Go build, and MySQL client libraries.
 
 # Stage 1: Build the Go runner
-FROM golang:1.22 AS builder
+FROM --platform=linux/amd64 golang:1.22-bookworm AS builder
 
 COPY runner /go/src/github.com/square/shift/runner
 WORKDIR /go/src/github.com/square/shift/runner
@@ -10,10 +11,10 @@ WORKDIR /go/src/github.com/square/shift/runner
 ENV GO111MODULE=off
 ENV GOPATH=/go:/go/src/github.com/square/shift/runner/Godeps/_workspace
 
-RUN CGO_ENABLED=0 go build -a -installsuffix cgo -o /go/bin/shift-runner .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -a -installsuffix cgo -o /go/bin/shift-runner .
 
-# Stage 2: Runtime — Ruby 2.7 + MySQL 5.7 client (compatible with Rails 4.2 and mysql2 gem)
-FROM ruby:2.7-slim
+# Stage 2: Runtime
+FROM --platform=linux/amd64 ruby:2.7-slim-bullseye
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV MYSQL_PWD=root
@@ -24,8 +25,6 @@ RUN apt-get update && apt-get install -y \
     cpanminus \
     curl \
     default-libmysqlclient-dev \
-    default-mysql-server \
-    default-mysql-client \
     libdbd-mysql-perl \
     libdbi-perl \
     libgmp-dev \
@@ -42,16 +41,15 @@ RUN apt-get update && apt-get install -y \
     --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Percona Toolkit + apply Shift patch
+# Install YAML::Syck (required by patched pt-osc)
+RUN cpanm YAML::Syck
+
+# Install pt-online-schema-change v3.0.13 directly from GitHub + apply Shift patch
 COPY ptosc-patch /opt/code/ptosc-patch
-RUN cpanm YAML::Syck \
-    && wget -q https://www.percona.com/downloads/percona-toolkit/3.0.13/source/tarball/percona-toolkit-3.0.13.tar.gz \
-    && tar -xf percona-toolkit-3.0.13.tar.gz \
-    && cd percona-toolkit-3.0.13/bin \
-    && patch pt-online-schema-change /opt/code/ptosc-patch/0001-ptosc-square-changes.patch \
-    && cp pt-* /usr/local/bin/ \
-    && chmod +x /usr/local/bin/pt-* \
-    && cd / && rm -rf percona-toolkit-3.0.13*
+RUN curl -sL "https://raw.githubusercontent.com/percona/percona-toolkit/3.0.13/bin/pt-online-schema-change" \
+        -o /usr/local/bin/pt-online-schema-change \
+    && chmod +x /usr/local/bin/pt-online-schema-change \
+    && patch /usr/local/bin/pt-online-schema-change /opt/code/ptosc-patch/0001-ptosc-square-changes.patch
 
 # Install Ruby gems
 COPY ui/Gemfile ui/Gemfile.lock /opt/code/ui/
@@ -63,8 +61,7 @@ COPY ui /opt/code/ui
 COPY --from=builder /go/bin/shift-runner /opt/code/runner/runner
 
 # Create directories
-RUN mkdir -p /tmp/shift /var/run/mysqld /var/lib/mysql \
-    && chown -R mysql:mysql /var/run/mysqld /var/lib/mysql
+RUN mkdir -p /tmp/shift /var/run/mysqld /var/lib/mysql
 
 # Copy entrypoint
 COPY docker-entrypoint.sh /opt/code/
