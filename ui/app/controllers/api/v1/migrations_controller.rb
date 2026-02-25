@@ -322,7 +322,18 @@ module Api
 
       def send_notifications(message)
         Notifier.notify(message)
+        audit_log(@migration, message)
         MigrationMailer.migration_status_change(@migration).deliver_now
+      end
+
+      def audit_log(migration, message)
+        Comment.create(
+          migration_id: migration.id,
+          author: 'system',
+          comment: "[AUDIT] #{message} at #{Time.now.utc.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+        )
+      rescue => e
+        Rails.logger.warn("[AUDIT] Failed to create audit comment: #{e.message}")
       end
     end
   end

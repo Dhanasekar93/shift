@@ -107,6 +107,8 @@ class MigrationsController < ApplicationController
   def create
     @migration = Form::NewMigrationRequest.new(params.require(:form_new_migration_request).merge(requestor: current_user_name))
     if @migration.save
+      Notifier.notify("migration id #{@migration.dao.id} created by #{current_user_name} on cluster #{@migration.dao.cluster_name} — DDL: #{@migration.dao.ddl_statement}")
+      audit_log(@migration.dao, "Migration created by #{current_user_name}")
       MigrationMailer.new_migration(@migration).deliver_now
       redirect_to migration_path(id: @migration.dao.id)
     else
@@ -286,8 +288,21 @@ class MigrationsController < ApplicationController
   end
 
   def send_notifications
-    Notifier.notify("migration id #{@migration.id} moved to status #{@migration.status} from the UI by #{current_user_name}")
+    status_label = Statuses.find_by_status(@migration.status).try(:description) || "status #{@migration.status}"
+    message = "migration id #{@migration.id} moved to #{status_label} from the UI by #{current_user_name}"
+    Notifier.notify(message)
+    audit_log(@migration, "Status changed to '#{status_label}' by #{current_user_name} via UI")
     MigrationMailer.migration_status_change(@migration).deliver_now
+  end
+
+  def audit_log(migration, message)
+    Comment.create(
+      migration_id: migration.id,
+      author: 'system',
+      comment: "[AUDIT] #{message} at #{Time.now.utc.strftime('%Y-%m-%d %H:%M:%S UTC')}"
+    )
+  rescue => e
+    Rails.logger.warn("[AUDIT] Failed to create audit comment: #{e.message}")
   end
 
   def show_failure?

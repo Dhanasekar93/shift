@@ -1,6 +1,6 @@
 [client]
 user     = root
-password = 
+password = root
 ssl      =
 ssl-cert =
 ssl-key  =
